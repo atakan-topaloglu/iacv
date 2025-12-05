@@ -23,9 +23,26 @@ def kmeans_fit(data, k, rng, n_iter=500, tol=1.e-4):
     centroids = data[rng.choice(N, k, replace=False)]
     
     # Iterate the k-means update steps
-    #
-    # TO IMPLEMENT
-    #
+    for _ in range(n_iter):
+        # Assign each sample to the nearest centroid
+        labels = kmeans_predict_idx(data, centroids)
+        
+        # Compute new centroids as mean of assigned samples
+        new_centroids = np.zeros_like(centroids)
+        for i in range(k):
+            mask = labels == i
+            if np.sum(mask) > 0:
+                new_centroids[i] = np.mean(data[mask], axis=0)
+            else:
+                # If no samples assigned, keep the old centroid
+                new_centroids[i] = centroids[i]
+        
+        # Check for convergence
+        total_change = np.sum(np.abs(new_centroids - centroids))
+        centroids = new_centroids
+        
+        if total_change < tol:
+            break
             
     # Return cluster centers
     return centroids
@@ -42,9 +59,12 @@ def compute_distance(data, clusters):
     Returns:
         distances ... n_samples x n_clusters
     """
-    
-    # TO IMPLEMENT
-    return -1
+    # Compute squared Euclidean distance using broadcasting
+    # data: (n_samples, n_features) -> (n_samples, 1, n_features)
+    # clusters: (n_clusters, n_features) -> (1, n_clusters, n_features)
+    diff = data[:, np.newaxis, :] - clusters[np.newaxis, :, :]
+    distances = np.sqrt(np.sum(diff ** 2, axis=2))
+    return distances
 
 
 def kmeans_predict_idx(data, clusters):
@@ -55,8 +75,8 @@ def kmeans_predict_idx(data, clusters):
         data     ... n_samples x n_features
         clusters ... n_clusters x n_features
     """
-    # TO IMPLEMENT
-    return -1
+    distances = compute_distance(data, clusters)
+    return np.argmin(distances, axis=1)
 
 
 def kNN(data_train, labels_train, data_test, k):
@@ -73,8 +93,26 @@ def kNN(data_train, labels_train, data_test, k):
     Returns:
         labels_test   ... n_testing_samples
     """
-    # TO IMPLEMENT
-    return -1
+    # Compute distances from test samples to training samples
+    distances = compute_distance(data_test, data_train)
+    
+    # For k=1, just find the nearest neighbor
+    if k == 1:
+        nearest_idx = np.argmin(distances, axis=1)
+        return labels_train[nearest_idx]
+    
+    # For k > 1, majority voting
+    n_test = data_test.shape[0]
+    labels_test = np.zeros(n_test, dtype=labels_train.dtype)
+    
+    for i in range(n_test):
+        # Get k nearest neighbor indices
+        k_nearest_idx = np.argsort(distances[i])[:k]
+        k_nearest_labels = labels_train[k_nearest_idx]
+        # Majority vote
+        labels_test[i] = np.bincount(k_nearest_labels).argmax()
+    
+    return labels_test
 
 
 def check_kmeans(kmeans_fit_fn, val_path):

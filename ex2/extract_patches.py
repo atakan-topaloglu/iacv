@@ -8,13 +8,27 @@ def extract_patches(img, p):
     Returns:
         patches ... Array of shape H x W x C*p**2, where last dimension holds flattened patches
     """
-
-    #
-    # TO IMPLEMENT
-    #
-
-    # For now just repeat image - you should replace this
-    return np.tile(img, (1,p**2))
+    H, W, C = img.shape
+    
+    # We'll collect shifted versions of the image
+    # For each position (y, x), we want a p x p patch centered at (y, x)
+    # The offset range is from -(p//2) to (p - p//2 - 1)
+    
+    patches_list = []
+    
+    # Iterate through all row and column offsets
+    for dy in range(-(p // 2), p - p // 2):
+        for dx in range(-(p // 2), p - p // 2):
+            # Roll the image so pixel at (y+dy, x+dx) appears at (y, x)
+            # np.roll with shift -dy along axis 0 brings row y+dy to row y
+            shifted = np.roll(np.roll(img, -dy, axis=0), -dx, axis=1)
+            patches_list.append(shifted)
+    
+    # Stack all shifted images along the last axis
+    # Each shifted image contributes C channels, so we get p*p*C total
+    patches = np.concatenate(patches_list, axis=2)
+    
+    return patches
 
 
 def check_patch_extraction(extract_patches_fn):
